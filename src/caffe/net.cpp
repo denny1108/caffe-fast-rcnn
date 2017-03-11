@@ -832,6 +832,173 @@ void Net<Dtype>::Reshape() {
   }
 }
 
+///////////////////////////////////////////////////////////////////
+//
+// 02/14/2016, Jingjliu: copy one pretrained network into siamese networks
+//
+/////////////////////////////////////////////////////////////////////
+template <typename Dtype>
+void Net<Dtype>::CopyTrainedLayersToSiameseFrom(const NetParameter& param) {
+  int num_source_layers = param.layer_size();
+  for (int i = 0; i < num_source_layers; ++i) {
+    const LayerParameter& source_layer = param.layer(i);
+    const string& source_layer_name = source_layer.name();
+    int target_layer_id = 0;
+
+    // copy to network_1 in siamese
+    while (target_layer_id != layer_names_.size() &&
+        layer_names_[target_layer_id] != source_layer_name) {
+      ++target_layer_id;
+    }
+    if (target_layer_id == layer_names_.size()) {
+      DLOG(INFO) << "Ignoring source layer " << source_layer_name;
+      continue;
+    }
+    DLOG(INFO) << "Copying source layer " << source_layer_name;
+    vector<shared_ptr<Blob<Dtype> > >& target_blobs =
+        layers_[target_layer_id]->blobs();
+    CHECK_EQ(target_blobs.size(), source_layer.blobs_size())
+        << "Incompatible number of blobs for layer " << source_layer_name;
+    for (int j = 0; j < target_blobs.size(); ++j) {
+      const bool kReshape = false;
+      std::cout << "Copying " << source_layer_name << " to " << 
+         layer_names_[target_layer_id] << std::endl;     
+      target_blobs[j]->FromProto(source_layer.blobs(j), kReshape);
+    }
+
+    // copy to network_2 in siamese: 
+    // the name of the twin layer is: name+"_p"
+    target_layer_id = 0;
+    while (target_layer_id != layer_names_.size() &&
+        (layer_names_[target_layer_id]) != source_layer_name+"_p") {
+      ++target_layer_id;
+    }
+    if (target_layer_id == layer_names_.size()) {
+      DLOG(INFO) << "Ignoring source layer " << source_layer_name;
+      continue;
+    }
+    DLOG(INFO) << "Copying source layer " << source_layer_name;
+    vector<shared_ptr<Blob<Dtype> > >& target_blobs_p =
+        layers_[target_layer_id]->blobs();
+    CHECK_EQ(target_blobs_p.size(), source_layer.blobs_size())
+        << "Incompatible number of blobs for layer " << source_layer_name;
+    for (int j = 0; j < target_blobs_p.size(); ++j) {
+      const bool kReshape = false;
+      std::cout << "Copying " << source_layer_name << " to " << 
+         layer_names_[target_layer_id] << std::endl;
+      target_blobs_p[j]->FromProto(source_layer.blobs(j), kReshape);
+    }
+  }
+}
+
+template <typename Dtype>
+void Net<Dtype>::CopyTrainedLayersToSiameseFrom(const string trained_filename) {
+  NetParameter param;
+  ReadNetParamsFromBinaryFileOrDie(trained_filename, &param);
+  CopyTrainedLayersToSiameseFrom(param);
+}
+
+///////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////
+//
+// 04/18/2016, Jingjliu: copy dual pretrained network into siamese networks
+//
+/////////////////////////////////////////////////////////////////////
+template <typename Dtype>
+void Net<Dtype>::CopyDualTrainedLayersToSiameseFrom(const NetParameter& param1,
+  const NetParameter& param2) {
+  // copy network1 into stream1 networks
+  int num_source_layers1 = param1.layer_size();
+  for (int i = 0; i < num_source_layers1; ++i) {
+    const LayerParameter& source_layer = param1.layer(i);
+    const string& source_layer_name = source_layer.name();
+    int target_layer_id = 0;
+    while (target_layer_id != layer_names_.size() &&
+        layer_names_[target_layer_id] != source_layer_name) {
+      ++target_layer_id;
+    }
+    if (target_layer_id == layer_names_.size()) {
+      DLOG(INFO) << "Ignoring source layer " << source_layer_name;
+      continue;
+    }
+    DLOG(INFO) << "Copying source layer " << source_layer_name;
+    vector<shared_ptr<Blob<Dtype> > >& target_blobs =
+        layers_[target_layer_id]->blobs();
+    CHECK_EQ(target_blobs.size(), source_layer.blobs_size())
+        << "Incompatible number of blobs for layer " << source_layer_name;
+    for (int j = 0; j < target_blobs.size(); ++j) {
+      if (!target_blobs[j]->ShapeEquals(source_layer.blobs(j))) {
+        Blob<Dtype> source_blob;
+        const bool kReshape = true;
+        source_blob.FromProto(source_layer.blobs(j), kReshape);
+        LOG(FATAL) << "Cannot copy param " << j << " weights from layer '"
+            << source_layer_name << "'; shape mismatch.  Source param shape is "
+            << source_blob.shape_string() << "; target param shape is "
+            << target_blobs[j]->shape_string() << ". "
+            << "To learn this layer's parameters from scratch rather than "
+            << "copying from a saved net, rename the layer.";
+      }
+      const bool kReshape = false;
+      std::cout << "Copying " << source_layer_name << " of network1 to " << 
+         layer_names_[target_layer_id] << std::endl;
+      target_blobs[j]->FromProto(source_layer.blobs(j), kReshape);
+    }
+  }
+
+  // copy network2 into stream2 networks
+  int num_source_layers2 = param2.layer_size();
+  for (int i = 0; i < num_source_layers2; ++i) {
+    const LayerParameter& source_layer = param2.layer(i);
+    const string& source_layer_name = source_layer.name();
+    int target_layer_id = 0;
+    while (target_layer_id != layer_names_.size() &&
+        layer_names_[target_layer_id] != source_layer_name+"_p") {
+      ++target_layer_id;
+    }
+    if (target_layer_id == layer_names_.size()) {
+      DLOG(INFO) << "Ignoring source layer " << source_layer_name;
+      continue;
+    }
+    DLOG(INFO) << "Copying source layer " << source_layer_name;
+    vector<shared_ptr<Blob<Dtype> > >& target_blobs =
+        layers_[target_layer_id]->blobs();
+    CHECK_EQ(target_blobs.size(), source_layer.blobs_size())
+        << "Incompatible number of blobs for layer " << source_layer_name;
+    for (int j = 0; j < target_blobs.size(); ++j) {
+      if (!target_blobs[j]->ShapeEquals(source_layer.blobs(j))) {
+        Blob<Dtype> source_blob;
+        const bool kReshape = true;
+        source_blob.FromProto(source_layer.blobs(j), kReshape);
+        LOG(FATAL) << "Cannot copy param " << j << " weights from layer '"
+            << source_layer_name << "'; shape mismatch.  Source param shape is "
+            << source_blob.shape_string() << "; target param shape is "
+            << target_blobs[j]->shape_string() << ". "
+            << "To learn this layer's parameters from scratch rather than "
+            << "copying from a saved net, rename the layer.";
+      }
+      const bool kReshape = false;
+      std::cout << "Copying " << source_layer_name << " of network2 to " << 
+          layer_names_[target_layer_id] << std::endl;
+      target_blobs[j]->FromProto(source_layer.blobs(j), kReshape);
+    }
+  }
+}
+
+template <typename Dtype>
+void Net<Dtype>::CopyDualTrainedLayersToSiameseFrom(const string trained_filename1, 
+  const string trained_filename2) {
+  NetParameter param1;
+  NetParameter param2;
+  ReadNetParamsFromBinaryFileOrDie(trained_filename1, &param1);
+  ReadNetParamsFromBinaryFileOrDie(trained_filename2, &param2);
+  CopyDualTrainedLayersToSiameseFrom(param1, param2);
+}
+
+///////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////
+
 template <typename Dtype>
 void Net<Dtype>::CopyTrainedLayersFrom(const NetParameter& param) {
   int num_source_layers = param.layer_size();

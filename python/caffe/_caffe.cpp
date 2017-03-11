@@ -219,6 +219,12 @@ BOOST_PYTHON_MODULE(_caffe) {
     // The cast is to select a particular overload.
     .def("copy_from", static_cast<void (Net<Dtype>::*)(const string)>(
         &Net<Dtype>::CopyTrainedLayersFrom))
+    // added by Jingjliu 
+    .def("copy2siamese_from", static_cast<void (Net<Dtype>::*)(const string)>(
+        &Net<Dtype>::CopyTrainedLayersToSiameseFrom))
+    .def("copydual2siamese_from", static_cast<void (Net<Dtype>::*)(const string, const string)>(
+        &Net<Dtype>::CopyDualTrainedLayersToSiameseFrom))
+    ///
     .def("share_with", &Net<Dtype>::ShareTrainedLayersWith)
     .add_property("_blob_loss_weights", bp::make_function(
         &Net<Dtype>::blob_loss_weights, bp::return_internal_reference<>()))

@@ -114,6 +114,10 @@ class Net {
   void CopyTrainedLayersFrom(const string trained_filename);
   void CopyTrainedLayersFromBinaryProto(const string trained_filename);
   void CopyTrainedLayersFromHDF5(const string trained_filename);
+  void CopyTrainedLayersToSiameseFrom(const NetParameter& param);
+  void CopyTrainedLayersToSiameseFrom(const string trained_filename);
+  void CopyDualTrainedLayersToSiameseFrom(const string trained_filename1, const string trained_filename2);
+  void CopyDualTrainedLayersToSiameseFrom(const NetParameter& param1, const NetParameter& param2);
   /// @brief Writes the net to a proto.
   void ToProto(NetParameter* param, bool write_diff = false) const;
   /// @brief Writes the net to an HDF5 file.

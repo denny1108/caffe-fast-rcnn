@@ -58,30 +58,6 @@ class SmoothL1LossLayerTest : public MultiDeviceTest<TypeParam> {
     delete blob_top_loss_;
   }
 
-//  void TestForward() {
-//    // Get the loss without a specified objective weight -- should be
-//    // equivalent to explicitly specifiying a weight of 1.
-//    LayerParameter layer_param;
-//    SmoothL1LossLayer<Dtype> layer_weight_1(layer_param);
-//    layer_weight_1.SetUp(this->blob_bottom_vec_, this->blob_top_vec_);
-//    const Dtype loss_weight_1 =
-//        layer_weight_1.Forward(this->blob_bottom_vec_, this->blob_top_vec_);
-//
-//    // Get the loss again with a different objective weight; check that it is
-//    // scaled appropriately.
-//    const Dtype kLossWeight = 3.7;
-//    layer_param.add_loss_weight(kLossWeight);
-//    SmoothL1LossLayer<Dtype> layer_weight_2(layer_param);
-//    layer_weight_2.SetUp(this->blob_bottom_vec_, this->blob_top_vec_);
-//    const Dtype loss_weight_2 =
-//        layer_weight_2.Forward(this->blob_bottom_vec_, this->blob_top_vec_);
-//    const Dtype kErrorMargin = 1e-5;
-//    EXPECT_NEAR(loss_weight_1 * kLossWeight, loss_weight_2, kErrorMargin);
-//    // Make sure the loss is non-trivial.
-//    const Dtype kNonTrivialAbsThresh = 1e-1;
-//    EXPECT_GE(fabs(loss_weight_1), kNonTrivialAbsThresh);
-//  }
-
   Blob<Dtype>* const blob_bottom_data_;
   Blob<Dtype>* const blob_bottom_label_;
   Blob<Dtype>* const blob_bottom_inside_weights_;
@@ -92,10 +68,6 @@ class SmoothL1LossLayerTest : public MultiDeviceTest<TypeParam> {
 };
 
 TYPED_TEST_CASE(SmoothL1LossLayerTest, TestDtypesGPU);
-
-//TYPED_TEST(SmoothL1LossLayerTest, TestForward) {
-//  this->TestForward();
-//}
 
 TYPED_TEST(SmoothL1LossLayerTest, TestGradient) {
   typedef typename TypeParam::Dtype Dtype;
